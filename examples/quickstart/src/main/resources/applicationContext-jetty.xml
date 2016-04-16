@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+	<context:property-placeholder location="classpath*:/jetty.properties" />
+	<bean id="server" name="Main" class="org.eclipse.jetty.server.Server"
+		init-method="start" destroy-method="stop">
+		<property name="stopAtShutdown" value="true"></property>
+		<constructor-arg>
+			<bean id="threadPool" class="org.eclipse.jetty.util.thread.QueuedThreadPool">
+				<property name="minThreads" value="10" />
+				<property name="maxThreads" value="50" />
+			</bean>
+		</constructor-arg>
+		<property name="connectors">
+			<list>
+				<bean id="connector" class="org.eclipse.jetty.server.ServerConnector">
+					<constructor-arg ref="server" />
+					<property name="port" value="${jetty.port}" />
+				</bean>
+				<bean id="sslConnector" class="org.eclipse.jetty.server.ServerConnector">
+					<constructor-arg name="server" ref="server" />
+					<constructor-arg name="factories">
+						<list>
+							<bean id="sslConnectionFactory" class="org.eclipse.jetty.server.SslConnectionFactory">
+								<constructor-arg index="0">
+									<bean id="sslContextFactory" class="org.eclipse.jetty.util.ssl.SslContextFactory">
+										<property name="keyStorePath" value="${jetty.https.keystore}" />
+										<property name="keyStorePassword" value="OBF:19iy19j019j219j419j619j8" />
+										<property name="keyManagerPassword" value="OBF:19iy19j019j219j419j619j8" />
+									</bean>
+								</constructor-arg>
+								<constructor-arg index="1" value="http/1.1" />
+							</bean>
+							<bean id="httpConnectionFactory" class="org.eclipse.jetty.server.HttpConnectionFactory">
+								<constructor-arg>
+									<bean id="httpConfiguration" class="org.eclipse.jetty.server.HttpConfiguration">
+										<property name="secureScheme" value="https" />
+										<property name="securePort" value="${jetty.https.port}" />
+										<property name="outputBufferSize" value="409600" />
+										<property name="customizers">
+											<bean class="org.eclipse.jetty.server.SecureRequestCustomizer" />
+										</property>
+									</bean>
+								</constructor-arg>
+							</bean>
+						</list>
+					</constructor-arg>
+
+					<property name="port" value="${jetty.https.port}" />
+					<property name="idleTimeout" value="${jetty.https.timeout}" />
+				</bean>
+			</list>
+		</property>
+		<property name="handler">
+			<bean id="handlers" class="org.eclipse.jetty.server.handler.HandlerCollection">
+				<property name="handlers">
+					<list>
+						<bean class="org.eclipse.jetty.webapp.WebAppContext">
+							<property name="contextPath" value="${jetty.context}" />
+							<property name="war" value="${jetty.dir}" />
+							<property name="parentLoaderPriority" value="true" />
+							<property name="defaultsDescriptor" value="jetty/webdefault-windows.xml" />
+						</bean>
+						<bean class="org.eclipse.jetty.server.handler.RequestLogHandler">
+							<property name="requestLog">
+								<bean class="org.eclipse.jetty.server.NCSARequestLog">
+									<constructor-arg value="./logs/yyyy_mm_dd.request.log"></constructor-arg>
+								</bean>
+							</property>
+						</bean>
+					</list>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+</beans>
